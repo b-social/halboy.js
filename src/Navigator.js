@@ -18,26 +18,19 @@ class Navigator {
   }
 
   static resume (location, resource, options = {}) {
-    return new Navigator(options)
-      ._setLocation(location)
-      ._setResource(resource)
+    return new Navigator(options, { resource, location })
   }
 
-  _setResource (resource) {
-    this._resource = resource
-    return this
-  }
-
-  _setLocation (location) {
-    this._location = location
-    return this
-  }
-
-  constructor (options) {
+  constructor (options, { status, location, response, resource } = {}) {
     this.options = {
       ...Navigator.defaultOptions,
       ...options
     }
+
+    this._status = status
+    this._response = response
+    this._resource = resource
+    this._location = location
   }
 
   location () {
@@ -57,7 +50,7 @@ class Navigator {
   }
 
   resolveLink (rel, params) {
-    const relativeHref = this._resource.getHref(rel)
+    const relativeHref = this.resource().getHref(rel)
 
     if (!relativeHref) {
       throw new Error(`Attempting to follow the link '${rel}', which does not exist`)
@@ -66,7 +59,7 @@ class Navigator {
     const { href, params: queryParams } = resolveLink(relativeHref, params)
 
     return {
-      href: makeAbsolute(this._location, href),
+      href: makeAbsolute(this.location(), href),
       queryParams
     }
   }
@@ -104,12 +97,7 @@ class Navigator {
       response
     } = await this.options.get(url, params, config)
 
-    this._status = status
-    this._location = location
-    this._response = response
-    this._resource = Resource.fromObject(body)
-
-    return this
+    return new Navigator(this.options, { status, location, response, resource: Resource.fromObject(body) })
   }
 
   async postUrl (url, body, config) {
@@ -120,16 +108,11 @@ class Navigator {
       response
     } = await this.options.post(url, body, config)
 
-    this._status = status
-    this._location = location
-    this._response = response
-    this._resource = Resource.fromObject(responseBody)
-
     if (this.options.followRedirects && status === 201) {
-      return this.followRedirect(config)
+      return new Navigator(this.options, { status, location, response, resource: Resource.fromObject(responseBody) }).followRedirect(config)
     }
 
-    return this
+    return new Navigator(this.options, { status, location, response, resource: Resource.fromObject(responseBody) })
   }
 
   async putUrl (url, body, config) {
@@ -140,16 +123,11 @@ class Navigator {
       response
     } = await this.options.put(url, body, config)
 
-    this._status = status
-    this._location = location
-    this._response = response
-    this._resource = Resource.fromObject(responseBody)
-
     if (this.options.followRedirects && status === 201) {
-      return this.followRedirect(config)
+      return new Navigator(this.options, { status, location, response, resource: Resource.fromObject(responseBody) }).followRedirect(config)
     }
 
-    return this
+    return new Navigator(this.options, { status, location, response, resource: Resource.fromObject(responseBody) })
   }
 
   async patchUrl (url, body, config) {
@@ -160,16 +138,11 @@ class Navigator {
       response
     } = await this.options.patch(url, body, config)
 
-    this._status = status
-    this._location = location
-    this._response = response
-    this._resource = Resource.fromObject(responseBody)
-
     if (this.options.followRedirects && status === 204) {
-      return this.followRedirect(config)
+      return new Navigator(this.options, { status, location, response, resource: Resource.fromObject(responseBody) }).followRedirect(config)
     }
 
-    return this
+    return new Navigator(this.options, { status, location, response, resource: Resource.fromObject(responseBody) })
   }
 
   async deleteUrl (url, body, config) {
@@ -180,18 +153,11 @@ class Navigator {
       response
     } = await this.options.delete(url, body, config)
 
-    this._status = status
-    this._location = location
-    this._response = response
-    this._resource = Resource.fromObject(responseBody)
-
-    return this
+    return new Navigator(this.options, { status, location, response, resource: Resource.fromObject(responseBody) })
   }
 
   async followRedirect (config) {
-    const fullLocation = makeAbsolute(
-      this._location, this.getHeader('location'))
-    return this.getUrl(fullLocation, {}, config)
+    return this.getUrl(makeAbsolute(this.location(), this.getHeader('location')), {}, config)
   }
 }
 
