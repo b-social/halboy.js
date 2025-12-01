@@ -1,7 +1,33 @@
 import axios from 'axios'
 
+function validateUrl(url) {
+  try {
+    // Minimal path validation
+    if (url.includes('/../') || /\/%2e%2e\//i.test(url)) {
+      throw new Error('Invalid path');
+    }
+    
+    const parsedUrl = new URL(url);
+    
+    // Protocol check
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Invalid protocol');
+    }
+    
+    // Domain allowlist
+    const allowedDomains = ['example.com']; // add your allowed domains here
+    if (!allowedDomains.includes(parsedUrl.hostname)) {
+      throw new Error('Invalid host');
+    }
+    
+    return parsedUrl.href;
+  } catch {
+    throw new Error('Invalid URL');
+  }
+}
+
 const axiosGet = (url, params, config) =>
-  axios.get(url, { ...config, params, validateStatus: () => true })
+  axios.get(validateUrl(url), { ...config, params, validateStatus: () => true })
     .then((response) => ({
       status: response.status,
       body: response.data,
@@ -10,7 +36,7 @@ const axiosGet = (url, params, config) =>
     }))
 
 const axiosPost = (url, body, config) =>
-  axios.post(url, body, { ...config, validateStatus: () => true })
+  axios.post(validateUrl(url), body, { ...config, validateStatus: () => true })
     .then((response) => ({
       status: response.status,
       body: response.data,
@@ -19,7 +45,7 @@ const axiosPost = (url, body, config) =>
     }))
 
 const axiosPut = (url, body, config) =>
-  axios.put(url, body, { ...config, validateStatus: () => true })
+  axios.put(validateUrl(url), body, { ...config, validateStatus: () => true })
     .then((response) => ({
       status: response.status,
       body: response.data,
@@ -28,7 +54,7 @@ const axiosPut = (url, body, config) =>
     }))
 
 const axiosPatch = (url, body, config) =>
-  axios.patch(url, body, { ...config, validateStatus: () => true })
+  axios.patch(validateUrl(url), body, { ...config, validateStatus: () => true })
     .then((response) => ({
       status: response.status,
       body: response.data,
@@ -37,7 +63,7 @@ const axiosPatch = (url, body, config) =>
     }))
 
 const axiosDelete = (url, body, config) =>
-  axios.delete(url,
+  axios.delete(validateUrl(url),
     { ...config, data: body, validateStatus: () => true })
     .then((response) => ({
       status: response.status,
